@@ -1,0 +1,6 @@
+#!/bin/bash
+
+
+#groff -Tascii -man goodnight.man | less
+
+groff -Tascii -man goodnight.man | tail --lines=+5 | head --lines=-4

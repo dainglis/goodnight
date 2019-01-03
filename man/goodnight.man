@@ -1,0 +1,22 @@
+.TH GOODNIGHT 1 2018-12-16 GNU Linux\ Programmer's\ Manual
+.SH NAME
+goodnight - a simple blue-light filter using Xorg xgamma 
+.SH SYNOPSIS
+\fBgoodnight\fP [ -v | -h | on [handle] | off | list ]
+.SH DESCRIPTION
+the \fBgoodnight\fP filter modifies xgamma levels to display less blue
+.SS Options
+.TP
+\fBon\fP 
+enables the blue-light filter using the most recent preset
+.TP
+\fBoff\fP
+disables blue-light filter
+.TP
+\fBlist\fP
+displays filter presets from goodnight config file
+.SH FILES
+.TP
+\fU~/.config/goodnight/config\fP
+.SH "SEE ALSO"
+--
