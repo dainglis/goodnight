@@ -5,6 +5,9 @@
 * DATE      : 2018-12-02
 * DESC      :
 *   'goodnight' - the blue-light filter using xgamma manipulation
+*
+*   the goodnight.c file contains the command argument reader, command 
+*   functions, and custom print dialogue functions
 * 
 */
 
@@ -18,12 +21,17 @@
 #define VERSION "1.0.0"
 #define PROGNAME "goodnight"
 
-const char* FLAG_HELP = "help";
-const char* FLAG_LIST = "list";
-const char* FLAG_ON = "on";
-const char* FLAG_OFF = "off";
+
+// console argument commands
+const char* CMD_HELP = "help";
+const char* CMD_LIST = "list";
+const char* CMD_ON = "on";
+const char* CMD_OFF = "off";
+
 
 // prototypes
+bool commands(int, char*[]);
+void print_presets(preset*, int, int);
 void print_version(void);
 void print_unknown(const char*);
 void print_incorrect(const char*);
@@ -33,72 +41,129 @@ void print_usage(void);
 // program body
 int main(int argc, char* argv[]) {
     if (argc > 1) {
-        // print usage information
-        if (strcmp(argv[1], FLAG_HELP) == 0) {
-            print_usage();
-        }
-        
-        // turn on goodnight filter
-        else if (strcmp(argv[1], FLAG_ON) == 0) {
-            // use last configuration
-            if (argc == 2) {
-                if (apply_preset(PRESET_DEFAULT)) {
-                    printf("goodnight enabled - filter '%s' \n", PRESET_DEFAULT.handle);
-                } else {
-                    // print some error message about a bad preset
-                }
-            }
-            else if (argc == 3) {
-                printf("custom presets are currently disabled\n");
-                printf("DEBUG preset name: %s\n", argv[2]);
-            }
-            else {
-                print_incorrect(argv[1]);
-            }
-            
-        }
-        
-        // turn off goodnight filter
-        else if (strcmp(argv[1], FLAG_OFF) == 0) {
-            if (argc == 2) {
-                if (apply_preset(PRESET_CLEAR)) {
-                    printf("goodnight disabled\n");
-                }
-            }
-            else {
-                print_incorrect(argv[1]);
-            }
-        }
+        commands(argc, argv);
+    }
+    else {
+        print_version();
+        printf("sleep tight\n");
+    }
 
-        // list contents of config file
-        else if (strcmp(argv[1], FLAG_LIST) == 0) {
-            if (argc == 2) {
-                preset preset_default = {"default", 1.0, 1.0, 1.0};
-                switch(load_conf(&preset_default)) {
-                    case (ERR_NO_CONF):
-                        printf("no config file\n");
-                        break;
-                    case (ERR_BAD_CONF):
-                        printf("error in config file\n");
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else {
-                print_incorrect(argv[1]);
+    return 0;
+}
+
+
+/*
+* FUNCTION  : commands
+* DESC      :
+*   Processes commands passed to the program from the command line.
+* PARAMS    :
+*   int argc        : number of command-line arguments. this function
+*       expects argc to be at least 1, but a sanity check is in place
+*   char* argv[]    : the array of argument strings. size is 'argc'
+* RETURNS   :
+*   bool : command validity. returns true if a valid command has been
+*       processed, and false otherwise.
+*/
+bool commands(int argc, char* argv[]) {
+    int preset_count = 0;
+    preset preset_list[PRESETS_MAX];
+
+    // exits function if an empty args list has been mistakenly passed
+    if (argc < 1) {
+        return false;
+    }
+
+    // populates preset_list from config file
+    preset_list[0] = PRESET_DEFAULT;
+    preset_count++;
+    int conf_status = load_conf(preset_list, &preset_count);
+    
+    // print usage information
+    if (strcmp(CMD_HELP, argv[1]) == 0) {
+        print_usage();
+    }
+    
+    // turn on goodnight filter
+    else if (strcmp(CMD_ON, argv[1]) == 0) {
+        // use last configuration
+        if (argc == 2) {
+            if (apply_preset(PRESET_DEFAULT)) {
+                printf("goodnight enabled - filter '%s' \n", PRESET_DEFAULT.handle);
+            } else {
+                // print some error message about a bad preset
             }
         }
+        else if (argc == 3) {
+            int pre_idx = -1;
+            print_presets(preset_list, preset_count, conf_status);
+            //printf("custom presets are currently disabled\n");
+            //printf("DEBUG preset name: %s\n", argv[2]);
 
-        // unknown base flag
+            for (int i = 0; i < preset_count; i++) {
+                if (strcmp(preset_list[i].handle, argv[2]) == 0) {
+                    pre_idx = i;
+                }
+            }
+            if (pre_idx >= 0) {
+                printf("a preset with the handle '%s' exists in the config\n", preset_list[pre_idx].handle);
+                apply_preset(preset_list[pre_idx]);
+            }
+            else {
+                printf("no preset found with the handle '%s'\n", argv[2]);
+            }
+        }
         else {
-            print_unknown(argv[1]);
+            print_incorrect(argv[1]);
+        }
+        
+    }
+    
+    // turn off goodnight filter
+    else if (strcmp(CMD_OFF, argv[1]) == 0) {
+        if (argc == 2) {
+            if (apply_preset(PRESET_CLEAR)) {
+                printf("goodnight disabled\n");
+            }
+        }
+        else {
+            print_incorrect(argv[1]);
         }
     }
 
-    // no flags
+    // list contents of config file
+    else if (strcmp(CMD_LIST, argv[1]) == 0) {
+        if (argc == 2) {
+            print_presets(preset_list, preset_count, conf_status);
+        }
+        else {
+            print_incorrect(argv[1]);
+        }
+    }
+
+    // unknown base flag
     else {
-        print_usage();
+        print_unknown(argv[1]);
+    }
+
+    return true;
+}
+
+void print_presets(preset* preset_list, int preset_count, int conf_status) {
+    // print preset_list contents
+    for (int i = 0; i < preset_count; i++) {
+        printf("preset '%s': %6.4f %6.4f %6.4f\n", 
+                preset_list[i].handle,
+                preset_list[i].rgamma,
+                preset_list[i].ggamma,
+                preset_list[i].bgamma);
+    }
+    switch(conf_status) {
+        case (ERR_NO_CONF):
+            printf("no config file\n");
+            break;
+        case (ERR_BAD_CONF):
+            printf("error in config file\n");
+            break;
     }
 }
 
@@ -113,7 +178,7 @@ int main(int argc, char* argv[]) {
 *     void
 */
 void print_version(void) {
-    printf("goodnight ver %s\n\n", VERSION);
+    printf("goodnight ver %s\n", VERSION);
 }
 
 
@@ -128,7 +193,7 @@ void print_version(void) {
 *     void
 */
 void print_unknown(const char* arg) {
-    printf("unknown argument '%s' \nuse argument 'help' for usage information\n", arg);
+    printf("unknown command '%s' \nuse command 'help' for usage information\n", arg);
 }
 
 
@@ -143,7 +208,7 @@ void print_unknown(const char* arg) {
 *     void
 */
 void print_incorrect(const char* flag) {
-    printf("incorrect usage of the '%s' argument\n", flag);
+    printf("incorrect usage of the '%s' command\n", flag);
 }
 
 /*

@@ -21,6 +21,8 @@
 
 #define BUFFER_SIZE 1000
 
+#define PRESETS_MAX 20
+
 // preset structure definition
 typedef struct {
     char handle[BUFFER_SIZE];
@@ -34,6 +36,6 @@ extern const preset PRESET_CLEAR;
 extern const preset PRESET_DEFAULT;
 
 // function prototypes for preset.c
-int load_conf(preset*);
+int load_conf(preset*, int*);
 bool frange(float, float, float);
 bool apply_preset(preset);

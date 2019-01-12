@@ -8,33 +8,38 @@
 */
 
 #include "preset.h"
+
+
 const preset PRESET_CLEAR = { "clear", 1.0, 1.0, 1.0 };
-const preset PRESET_DEFAULT = { "default", 1.0, 1.0, 0.9 };
+const preset PRESET_DEFAULT = { "default", 1.0, 1.0, 0.89 };
 
-int load_conf(preset* preset_def) {
-    
-    // processes the goodnight.conf file
-    // interprets lines beginning with # as comments
-    // ignores whitespace between options
-    // 
-    // conf file contains goodnight filter presets in the following form:
-    //     "filter-name" r g b
-    // where r, g, b are floating points between 0.100 and 10.000, but recommended
-    // between 0.100 and 1.000
-
+/*
+* FUNCTION  : load_conf
+* DESC      :
+*   Processes the goodnight config file. Interprets lines beginning with # as 
+*   comments. Ignores whitespace between options.
+*     
+*   config file contains goodnight filter presets in the following form:
+*       "filter-name" r g b
+*   where r, g, b are floating points between 0.100 and 1.000
+* PARAMS    :
+*   preset* list
+* RETURNS   :
+*   int
+*/
+int load_conf(preset* list, int* count) {    
     const int STATE_DEFAULT = 0;
     const int STATE_COMMENT = 1;
-    const int STATE_SPACING = 2;
     const int STATE_CSTRING = 3;
 
     int readstate = STATE_DEFAULT;
 
     char buffer[BUFFER_SIZE] = "";
     int buffer_count = 0;
+
     char memory[50][100];
     int memory_count = 0;
     
-    preset working_preset = {"", 0, 0, 0};
 
     char conf[BUFFER_SIZE] = ""; 
     strcat(conf, getenv("HOME"));
@@ -49,20 +54,19 @@ int load_conf(preset* preset_def) {
         char x = 0;
         x = fgetc(ifp);
 
-        // read #
-        // skip until next \n then read next character
-        
-
-        // read ' ' or \t or \n
-        // skip until next non spacing character then read that character
-
         if (readstate == STATE_DEFAULT) {
+            // read #
+            // skip until next \n then read next character
             if (x == '#') {
                 readstate = STATE_COMMENT;
             }
+            // read "
+            // read inside quotes until next "
             else if (x == '"') {
                 readstate = STATE_CSTRING;
             }
+            // read ' ' or \t or \n
+            // skip until next non spacing character then read that character
             else if (x == ' ' || x == '\t' || x == '\n') {
                 // dump buffer
                 buffer[buffer_count] = 0;
@@ -113,10 +117,21 @@ int load_conf(preset* preset_def) {
         fclose(ifp);
     }
 
-    //
-    printf("config presets:\n");
-    for (int i = 0; i < memory_count; i++) {
-        printf("memory %d: %s\n", i, memory[i]);
+
+    /* 
+    * read from memory array
+    * memory_count must be a multiple of 4 to process a preset
+    */
+    if (memory_count % 4 == 0) {
+        for (int i = 0; (i < memory_count) && (*count < PRESETS_MAX); i += 4) {
+            strncpy( (list+(*count))->handle, memory[i], BUFFER_SIZE );
+            if ( (sscanf(memory[i + 1], "%f", &(list+(*count))->rgamma) == 0) ||
+                    (sscanf(memory[i + 2], "%f", &(list+(*count))->ggamma) == 0) ||
+                    (sscanf(memory[i + 3], "%f", &(list+(*count))->bgamma) == 0)) {
+                return ERR_BAD_CONF;
+            }
+            (*count) ++;
+        }
     }
 
     return VALID_CONF;
