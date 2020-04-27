@@ -23,19 +23,30 @@
 
 #define PRESETS_MAX 20
 
+// min/max values for presets
+#define XGAMMA_UPPER 2.000
+#define XGAMMA_LOWER 0.100
+
+
 // preset structure definition
-typedef struct {
+typedef struct preset {
     char handle[BUFFER_SIZE];
     float rgamma;
     float ggamma;
     float bgamma;
+    struct preset* next;
 } preset;
     
 // preset constants
 extern const preset PRESET_CLEAR;
 extern const preset PRESET_DEFAULT;
 
+
 // function prototypes for preset.c
+int load_defaults(preset*, int*);
 int load_conf(preset*, int*);
-bool frange(float, float, float);
+
+bool validate_preset(preset);
 bool apply_preset(preset);
+
+bool frange(float, float, float);

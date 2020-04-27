@@ -13,6 +13,14 @@
 const preset PRESET_CLEAR = { "clear", 1.0, 1.0, 1.0 };
 const preset PRESET_DEFAULT = { "default", 1.0, 1.0, 0.89 };
 
+
+int load_defaults(preset* list, int* count) {
+    list[*count] = PRESET_DEFAULT;
+    (*count) ++;
+
+    return 1;
+}
+
 /*
 * FUNCTION  : load_conf
 * DESC      :
@@ -154,9 +162,6 @@ int load_conf(preset* list, int* count) {
 *       otherwise
 */
 bool validate_preset(preset p) {
-    const float XGAMMA_LOWER = 0.100;
-    const float XGAMMA_UPPER = 1.000;
-
     if (frange(p.rgamma, XGAMMA_LOWER, XGAMMA_UPPER) &&
             frange(p.ggamma, XGAMMA_LOWER, XGAMMA_UPPER) &&
             frange(p.bgamma, XGAMMA_LOWER, XGAMMA_UPPER)) {
@@ -190,7 +195,6 @@ bool apply_preset(preset p) {
 
     return true;
 }
-
 
 
 /*

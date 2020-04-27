@@ -18,7 +18,7 @@
 
 #include "preset.h"
 
-#define VERSION "1.0.0"
+#define VERSION "0.2"
 #define PROGNAME "goodnight"
 
 
@@ -31,7 +31,7 @@ const char* CMD_OFF = "off";
 
 // prototypes
 bool commands(int, char*[]);
-void print_presets(preset*, int, int);
+void print_presets(preset*, int);
 void print_version(void);
 void print_unknown(const char*);
 void print_incorrect(const char*);
@@ -68,15 +68,25 @@ bool commands(int argc, char* argv[]) {
     int preset_count = 0;
     preset preset_list[PRESETS_MAX];
 
+    preset* pr_list = NULL;
+
     // exits function if an empty args list has been mistakenly passed
     if (argc < 1) {
         return false;
     }
 
+    load_defaults(preset_list, &preset_count);
+
+    switch(load_conf(preset_list, &preset_count)) {
+        case (ERR_NO_CONF):
+            printf("no config file\n");
+            break;
+        case (ERR_BAD_CONF):
+            printf("error in config file\n");
+            break;
+    }
+
     // populates preset_list from config file
-    preset_list[0] = PRESET_DEFAULT;
-    preset_count++;
-    int conf_status = load_conf(preset_list, &preset_count);
     
     // print usage information
     if (strcmp(CMD_HELP, argv[1]) == 0) {
@@ -95,7 +105,7 @@ bool commands(int argc, char* argv[]) {
         }
         else if (argc == 3) {
             int pre_idx = -1;
-            print_presets(preset_list, preset_count, conf_status);
+            print_presets(preset_list, preset_count);
             //printf("custom presets are currently disabled\n");
             //printf("DEBUG preset name: %s\n", argv[2]);
 
@@ -133,7 +143,7 @@ bool commands(int argc, char* argv[]) {
     // list contents of config file
     else if (strcmp(CMD_LIST, argv[1]) == 0) {
         if (argc == 2) {
-            print_presets(preset_list, preset_count, conf_status);
+            print_presets(preset_list, preset_count);
         }
         else {
             print_incorrect(argv[1]);
@@ -148,23 +158,17 @@ bool commands(int argc, char* argv[]) {
     return true;
 }
 
-void print_presets(preset* preset_list, int preset_count, int conf_status) {
+
+void print_presets(preset* preset_list, int preset_count) {
     // print preset_list contents
     for (int i = 0; i < preset_count; i++) {
-        printf("preset '%s': %6.4f %6.4f %6.4f\n", 
+        printf("preset '%20s': RED %6.4f  GREEN %6.4f  BLUE %6.4f\n", 
                 preset_list[i].handle,
                 preset_list[i].rgamma,
                 preset_list[i].ggamma,
                 preset_list[i].bgamma);
     }
-    switch(conf_status) {
-        case (ERR_NO_CONF):
-            printf("no config file\n");
-            break;
-        case (ERR_BAD_CONF):
-            printf("error in config file\n");
-            break;
-    }
+
 }
 
 
@@ -188,7 +192,7 @@ void print_version(void) {
 *     Prints dialog informing the user they have entered an
 *     unknown argument
 * PARAMS    :
-*     const char* cmd : the unknown argument entered by the user
+*     const char* arg : the unknown argument entered by the user
 * RETURNS   : 
 *     void
 */
@@ -203,12 +207,12 @@ void print_unknown(const char* arg) {
 *     Prints dialog informing the user they have entered an 
 *     argument incorrectly
 * PARAMS    :
-*     const char* cmd : the incorrect argument entered by the user
+*     const char* arg : the incorrect argument entered by the user
 * RETURNS   : 
 *     void
 */
-void print_incorrect(const char* flag) {
-    printf("incorrect usage of the '%s' command\n", flag);
+void print_incorrect(const char* arg) {
+    printf("incorrect usage of the '%s' command\n", arg);
 }
 
 /*
@@ -226,7 +230,7 @@ void print_usage(void) {
     print_version();
 
     printf("SYNOPSIS\n");
-    printf("%4c%s %s\n\n", ' ', PROGNAME, "[ help | on [handle] | off | list ]");
+    printf("%4c%s %s\n\n", ' ', PROGNAME, "[ help | on [ handle ] | off | list ]");
     printf("USAGE\n");
     printf("%4c%-8s%s\n\n", ' ', "help", "prints this usage information");
     printf("%4c%s\n", ' ', "on [handle]"); 
